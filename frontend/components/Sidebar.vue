@@ -71,13 +71,29 @@
       </div>
     </div>
     
+    <!-- User Info -->
+    <div class="px-4 pb-2">
+      <div class="text-sm text-text-secondary">
+        用户: <span class="font-semibold text-text-primary">{{ username }}</span>
+      </div>
+    </div>
+    
     <!-- Settings Button -->
     <button
       @click="showSettings = true"
-      class="m-4 px-4 py-2 border border-border rounded-lg hover:bg-primary transition-colors flex items-center gap-2"
+      class="mx-4 mb-2 px-4 py-2 border border-border rounded-lg hover:bg-primary transition-colors flex items-center gap-2"
     >
       <Settings class="w-5 h-5" />
       设置
+    </button>
+    
+    <!-- Logout Button -->
+    <button
+      @click="handleLogout"
+      class="mx-4 mb-4 px-4 py-2 border border-border rounded-lg hover:bg-red-500/10 hover:border-red-500 hover:text-red-500 transition-colors flex items-center gap-2"
+    >
+      <LogOut class="w-5 h-5" />
+      退出登录
     </button>
   </aside>
   
@@ -86,11 +102,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useConversationStore } from '~/stores/conversation'
 import { useCreditStore } from '~/stores/credit'
+import { useAuthStore } from '~/stores/auth'
 import {
-  Plus, Search, Trash2, Settings,
+  Plus, Search, Trash2, Settings, LogOut,
   MessageSquare, FileText, Database, Globe, Image, Code, Brain
 } from 'lucide-vue-next'
 
@@ -103,11 +120,13 @@ const emit = defineEmits(['close-sidebar'])
 
 const conversationStore = useConversationStore()
 const creditStore = useCreditStore()
+const authStore = useAuthStore()
 
 const searchQuery = ref('')
 const showSettings = ref(false)
 const selectedConversationId = computed(() => conversationStore.currentConversationId)
 const credits = computed(() => creditStore.credits)
+const username = computed(() => authStore.user?.username || 'Guest')
 
 const filteredConversations = computed(() => {
   if (!searchQuery.value) {
@@ -151,10 +170,19 @@ const deleteConversation = async (id) => {
   }
 }
 
+const handleLogout = async () => {
+  if (confirm('确定要退出登录吗？')) {
+    await authStore.logout()
+    await navigateTo('/login')
+  }
+}
+
 // 加载对话列表
 onMounted(async () => {
-  await conversationStore.loadConversations()
-  await creditStore.loadCredits()
+  if (authStore.isAuthenticated) {
+    await conversationStore.loadConversations()
+    await creditStore.loadCredits()
+  }
 })
 </script>
 

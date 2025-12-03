@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api.v1 import auth, conversations, user
+from app.api.v1 import auth, conversations, user, chat
 
 # 创建数据库表
 @asynccontextmanager
@@ -39,6 +39,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["认证"])
 app.include_router(conversations.router, prefix="/api/v1/conversations", tags=["对话"])
 app.include_router(user.router, prefix="/api/v1/user", tags=["用户"])
+app.include_router(chat.router, prefix="/api/v1", tags=["聊天"])
 
 @app.get("/")
 async def root():

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     
     # API 配置
     API_BASE_URL: str = "https://api.kfm.plus/v1"
+    OPENAI_API_KEY: str = "sk-1155665"
     
     # CORS 配置（支持逗号分隔的字符串）
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"

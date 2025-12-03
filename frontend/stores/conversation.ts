@@ -46,13 +46,13 @@ export const useConversationStore = defineStore('conversation', {
       try {
         const modelStore = useModelStore()
         const modeStore = useModeStore()
-        
+
         const data = await api.post('/conversations', {
           title: '新对话',
           model: modelStore.currentModel,
           mode: modeStore.currentMode,
         })
-        
+
         this.conversations.unshift(data)
         this.currentConversationId = data.id
         this.messages[data.id] = []
@@ -88,45 +88,45 @@ export const useConversationStore = defineStore('conversation', {
         // 创建新对话
         await this.createConversation()
       }
-      
+
       const conversationId = this.currentConversationId!
       const modelStore = useModelStore()
       const modeStore = useModeStore()
       const settingsStore = useSettingsStore()
-      
+
       // 保存用户消息
       const userMessage = await api.post(`/conversations/${conversationId}/messages`, {
         role: 'user',
         content,
         token_count: 0,
       })
-      
+
       if (!this.messages[conversationId]) {
         this.messages[conversationId] = []
       }
       this.messages[conversationId].push(userMessage)
-      
+
       // 发送到 AI API
       const systemPrompt = generateSystemPrompt(modeStore.currentMode)
       const historyMessages = this.getMessages(conversationId)
         .slice(-settingsStore.settings.historyCount)
         .map(m => ({ role: m.role, content: m.content }))
-      
+
       const messages = [
         { role: 'system', content: systemPrompt },
         ...historyMessages,
         { role: 'user', content },
       ]
-      
-      // SSE 流式响应
+
+      // SSE 流式响应 - 通过后端代理
       let assistantContent = ''
       const assistantMessageId = Date.now() // 临时ID
-      
+
       try {
-        const response = await fetch(`${settingsStore.settings.apiUrl}`, {
+        const response = await fetch('http://localhost:8000/api/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${settingsStore.settings.apiKey}`,
+            'Authorization': `Bearer ${api.token || localStorage.getItem('access_token')}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -137,24 +137,24 @@ export const useConversationStore = defineStore('conversation', {
             max_tokens: settingsStore.settings.maxTokens,
           }),
         })
-        
+
         const reader = response.body?.getReader()
         const decoder = new TextDecoder()
-        
+
         if (!reader) throw new Error('No reader')
-        
+
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-          
+
           const chunk = decoder.decode(value)
           const lines = chunk.split('\n')
-          
+
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data = line.slice(6)
               if (data === '[DONE]') continue
-              
+
               try {
                 const json = JSON.parse(data)
                 const delta = json.choices?.[0]?.delta?.content
@@ -175,7 +175,7 @@ export const useConversationStore = defineStore('conversation', {
                     })
                   }
                 }
-                
+
                 // 处理 usage
                 if (json.usage) {
                   const tokenCount = json.usage.total_tokens || 0
@@ -185,13 +185,13 @@ export const useConversationStore = defineStore('conversation', {
                     content: assistantContent,
                     token_count: tokenCount,
                   })
-                  
+
                   // 更新消息
                   const index = this.messages[conversationId].findIndex(m => m.id === assistantMessageId)
                   if (index !== -1) {
                     this.messages[conversationId][index] = assistantMessage
                   }
-                  
+
                   // 扣除积分
                   const creditStore = useCreditStore()
                   await creditStore.deductCredits({
@@ -200,7 +200,7 @@ export const useConversationStore = defineStore('conversation', {
                     token_count: tokenCount,
                     mode: modeStore.currentMode,
                   })
-                  
+
                   // 如果是第一条消息，生成标题
                   if (this.messages[conversationId].filter(m => m.role === 'user').length === 1) {
                     await this.generateTitle(conversationId, content)

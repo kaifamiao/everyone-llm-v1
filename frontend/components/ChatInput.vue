@@ -77,7 +77,7 @@ const selectedMode = computed({
   set: (value) => modeStore.setMode(value),
 })
 
-const models = ['gpt-4o', 'gpt-4', 'gpt-3.5-turbo', 'claude-3-opus', 'claude-3-sonnet']
+const models = ['gpt-4o', 'gpt-4', 'gpt-3.5-turbo', 'claude-3-opus', 'claude-3-sonnet', 'deepseek-chat']
 
 const modes = [
   { value: 'AI', label: 'AI对话' },

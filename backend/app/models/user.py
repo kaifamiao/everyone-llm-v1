@@ -56,7 +56,6 @@ class UserCredit(Base):
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
     user = relationship("User", back_populates="credit")
-    deductions = relationship("CreditDeduction", back_populates="user", foreign_keys="CreditDeduction.user_id")
 
 class UserSession(Base):
     """用户会话表"""
